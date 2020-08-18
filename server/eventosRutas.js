@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-var event = require('./model/evento.js');
+var Event = require('./model/evento.js');
 
-router.post('/new', async function(req, res, next) {
+router.post('/events/new', async function(req, res, next) {
+    console.log('entra en router.post/new')
     const event = req.body;
     try {
         let _event = new Event({
@@ -15,11 +16,12 @@ router.post('/new', async function(req, res, next) {
             end_hour: event.end_hour
         });
 
-        const saveEvent = await _event.save();
+        var saveEvent = await _event.save();
 
         res.status(200).send('Evento guardado.');
 
     } catch (err) {
+        console.log('esta dando error')
         return res.status(500).send({
             message: err.message
         });

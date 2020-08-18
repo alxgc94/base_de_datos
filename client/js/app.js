@@ -1,68 +1,82 @@
 class EventManager {
+
     constructor() {
-        this.urlBase = "/events"
-        this.obtenerDataInicial()
-        this.inicializarFormulario()
-        this.guardarEvento()
+        this.urlBase = "/events";
+        this.obtenerDataInicial();
+        this.inicializarFormulario();
+        this.guardarEvento();
     }
 
     obtenerDataInicial() {
-        let url = this.urlBase + "/all"
+        let url = this.urlBase + "/all";
         $.get(url, (response) => {
-            this.inicializarCalendario(response)
-        })
+            if (typeof(response) == "string")
+                window.location.href = '/';
+            else
+                this.inicializarCalendario(response);
+        });
+    }
+
+    actualizarEvento(evento) {
+        $.post('/events/update/' + evento._id, {
+            ini: evento.start.format(),
+            fin: evento.end.format(),
+            id: evento._id
+        }, (response) => {
+            console.log(response);
+        });
     }
 
     eliminarEvento(evento) {
-        let eventId = evento._id
+        let eventId = evento._id;
         $.post('/events/delete/' + eventId, {
             id: eventId
         }, (response) => {
-            alert(response)
-        })
+            alert(parseInt(response.n) > 0 ? "Evento borrado..." : "Error al grabar");
+        });
     }
 
     guardarEvento() {
         $('.addButton').on('click', (ev) => {
-            ev.preventDefault()
-            let nombre = $('#titulo').val(),
-                start = $('#start_date').val(),
+            ev.preventDefault();
+            let start = $('#start_date').val(),
                 title = $('#titulo').val(),
                 end = '',
                 start_hour = '',
                 end_hour = '';
 
             if (!$('#allDay').is(':checked')) {
-                end = $('#end_date').val()
-                start_hour = $('#start_hour').val()
-                end_hour = $('#end_hour').val()
-                start = start + 'T' + start_hour
-                end = end + 'T' + end_hour
+                end = $('#end_date').val();
+                start_hour = $('#start_hour').val();
+                end_hour = $('#end_hour').val();
+                if (start_hour !== "")
+                    start = start + 'T' + start_hour;
+                if (end_hour !== "")
+                    end = end + 'T' + end_hour;
             }
-
-
-            let url = this.urlBase + "/new"
+            let url = this.urlBase + "/new";
             if (title != "" && start != "") {
                 let ev = {
-                    nombre,
-                    title,
-                    start,
-                    end,
-                    start_hour,
-                    end_hour
-                }
+                    title: title,
+                    start: start,
+                    end: end
+                };
+                console.log('title ' + title + ';start ' + start + ';url ' + url)
                 $.post(url, ev, (response) => {
-                    alert(response)
-                })
-                $('.calendario').fullCalendar('renderEvent', ev)
+                    this.inicializarFormulario();
+                    ev._id = response.id;
+                    $('.calendario').fullCalendar('renderEvent', ev);
+                    alert(parseInt(response.total) > 0 ? "Registro grabado correctamente..." : "Error al grabar");
+                });
             } else {
-                alert("Complete los campos obligatorios para el evento")
+                alert("Complete los campos obligatorios para el evento");
             }
-        })
+        });
     }
 
     inicializarFormulario() {
-        $('#start_date, #titulo, #end_date').val('');
+        console.log('entro a inicializar formilario')
+        $('#start_date, #titulo, #end_date, #start_hour, #end_hour').val('');
         $('#start_date, #end_date').datepicker({
             dateFormat: "yy-mm-dd"
         });
@@ -79,62 +93,12 @@ class EventManager {
         });
         $('#allDay').on('change', function() {
             if (this.checked) {
-                $('.timepicker, #end_date').attr("disabled", "disabled")
+                $('.timepicker, #end_date').attr("disabled", "disabled");
             } else {
-                $('.timepicker, #end_date').removeAttr("disabled")
+                $('.timepicker, #end_date').removeAttr("disabled");
             }
-        })
+        });
     }
-    actualizarEvento(evento) {
-
-        let id = evento._id,
-            start = moment(evento.start).format('YYYY-MM-DD HH:mm:ss'),
-            end = moment(evento.end).format('YYYY-MM-DD HH:mm:ss'),
-            form_data = new FormData(),
-            start_date,
-            end_date,
-            start_hour,
-            end_hour
-
-        form_data = {
-            id,
-            start_date: start.substr(0, 10),
-            end_date: end.substr(0, 10),
-            start_hour: start.substr(11, 8),
-            end_hour: end.substr(11, 8),
-        }
-
-
-        $.post('/events/update', form_data, response => {
-            alert(response);
-        })
-
-        $.ajax({
-            url: '/events/update',
-            dataType: "json",
-            cache: false,
-            processData: false,
-            contentType: false,
-            data: form_data,
-            type: 'POST',
-            success: (data) => {
-                if (data.msg == "OK") {
-                    alert('Se ha actualizado el evento exitosamente')
-                } else {
-                    alert(data.msg)
-                }
-            },
-            error: function() {
-                alert("error en la comunicación con el servidor");
-            }
-        })
-    }
-
-
-
-
-
-
 
     inicializarCalendario(eventos) {
         $('.calendario').fullCalendar({
@@ -143,7 +107,7 @@ class EventManager {
                 center: 'title',
                 right: 'month,agendaWeek,basicDay'
             },
-            defaultDate: '2019-03-29',
+            defaultDate: '2020-08-18',
             navLinks: true,
             editable: true,
             eventLimit: true,
@@ -151,14 +115,15 @@ class EventManager {
             dragRevertDuration: 0,
             timeFormat: 'H:mm',
             eventDrop: (event) => {
-                this.actualizarEvento(event)
+                this.actualizarEvento(event);
             },
             events: eventos,
             eventDragStart: (event, jsEvent) => {
-                $('.delete').find('img').attr('src', "img/trash-open.png");
-                $('.delete').css('background-color', '#a70f19')
+                $('.delete').find('img').attr('src', "img/delete.png");
+                $('.delete').css('background-color', '#a70f19');
             },
             eventDragStop: (event, jsEvent) => {
+                $('.delete').find('img').attr('src', "img/delete.png");
                 var trashEl = $('.delete');
                 var ofs = trashEl.offset();
                 var x1 = ofs.left;
@@ -167,12 +132,12 @@ class EventManager {
                 var y2 = ofs.top + trashEl.outerHeight(true);
                 if (jsEvent.pageX >= x1 && jsEvent.pageX <= x2 &&
                     jsEvent.pageY >= y1 && jsEvent.pageY <= y2) {
-                    this.eliminarEvento(event)
+                    this.eliminarEvento(event);
                     $('.calendario').fullCalendar('removeEvents', event._id);
                 }
             }
-        })
+        });
     }
 }
 
-const Manager = new EventManager()
+const Manager = new EventManager();

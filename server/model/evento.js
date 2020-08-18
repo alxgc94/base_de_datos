@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
-var eventoSchema = new Schema({
+var eventosSchema = new Schema({
     nombre: {
         type: String,
         required: true
@@ -29,8 +29,13 @@ var eventoSchema = new Schema({
         required: false,
         default: ''
     },
+    user_id: {
+        type: String,
+        required: true,
+        default: ''
+    }
 })
 
-var User = mongoose.model('Evento', eventoSchema);
+var Event = mongoose.model('Evento', eventosSchema);
 
-module.exports = User;
+module.exports = Event;
